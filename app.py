@@ -43,7 +43,6 @@ if uploaded_file is not None:
         st.info(f"**Global SJR Score:** {sjr_display}")
         
         # 3. Extract and parse categories and their specific quartiles
-        # Split "Mechanical Engineering (Q3); Mechanics of Materials (Q3)"
         raw_category_list = [cat.strip() for cat in categories_raw.split(';')]
         
         results = []
@@ -54,7 +53,6 @@ if uploaded_file is not None:
                 continue
                 
             # Extract category name and quartile using regex
-            # e.g., "Mechanical Engineering (Q3)" -> Name: "Mechanical Engineering", Quartile: "Q3"
             match = re.match(r"^(.*?)\s*\((Q[1-4])\)$", raw_cat)
             if match:
                 category_name = match.group(1).strip()
@@ -94,7 +92,7 @@ if uploaded_file is not None:
         results_df = pd.DataFrame(results)
         
         if not results_df.empty:
-            # Find the best entry (the highest percentile)
+            # Find index of the highest percentile
             best_idx = results_df['Percentile Placement (%)'].idxmax()
             best_category = results_df.loc[best_idx, 'Category Sub-Area']
             best_percentile = results_df.loc[best_idx, 'Percentile Placement (%)']
@@ -103,18 +101,17 @@ if uploaded_file is not None:
             # Display summary metric callout box
             st.success(f"🏆 **Best Performing Category:** {best_category} ({best_quartile} | {best_percentile}% Percentile)")
             
-            # Highlight max row and use a color background style for the Percentile column
-            styled_df = results_df.style.background_gradient(
-                subset=['Percentile Placement (%)'], 
-                cmap='YlGnBu'  # Beautiful yellow-green-blue gradient shading
-            ).highlight_max(
-                axis=0, 
-                subset=['Percentile Placement (%)'], 
-                color='#bfa'  # Highlight the absolute highest rank row with a bright light green row accent
-            )
+            # Custom function to color only the text of the best row green and bold
+            def highlight_best_text(row):
+                if row.name == best_idx:
+                    return ['color: #28a745; font-weight: bold;'] * len(row)
+                return [''] * len(row)
+            
+            # Apply styling to dataframe rows without touching background colors
+            styled_df = results_df.style.apply(highlight_best_text, axis=1)
             
             # Display interactive formatted table
             st.dataframe(styled_df, use_container_width=True)
-            st.caption("*Tip: The row containing the maximum percentile is highlighted in light green, while the percentile column uses shading scales to represent performance density.*")
+            st.caption("*Note: The row with the highest percentile ranking is highlighted in bold green text.*")
         else:
             st.warning("No category rankings could be extracted for this entry.")
